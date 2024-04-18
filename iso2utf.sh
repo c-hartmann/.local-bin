@@ -24,7 +24,7 @@ _usage ()
 if [[ $# -eq 0 ]]; then
 	iconv -f $FROM -t $TO
 else
-	for filename in "$@"; do
+	for SRC in "$@"; do
 		filename="${SRC%.*}"
 		extension="${SRC##*.}"
 		iconv -f $FROM -t $TO "${SRC}" > "${filename}-utf8.${extension}"
