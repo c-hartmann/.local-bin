@@ -14,23 +14,38 @@
 # https://superuser.com/questions/1267984/how-to-exit-read-bash-builtin-by-pressing-the-esc-key
 #
 # TODO:
-# have an environmental default to **always** enter the new directory without any interaction
-# this also might have a command line option such -c (cd!) or -q (quiet) or -y (--yes) this !!!
-# and if we have --yes we might want --no as well :)
+# have an environmental default to **always** enter the new directory without
+# any interaction such as MDX_CD=true|yes. this also might have a command line
+# option such -c (cd!) or -y (--yes) this. we also want --no to override
+# environmental default is set
+
+
 
 function mdx ()
 {
 	local _me='mdx'
 
+#  	invert() { return "$(( ! $1 ))"; }
+#   	invert() { $1 ? return 'false' : return 'true'; }
+#   	invert() { $1 ? printf 'false' : printf 'true' }
+#  	invert() { local _ret; $1 ? _ret='false' : _ret='true'; printf '%s' $_ret; }
+# 	invert() { local _ret; _ret=$(($1 ? 'false' : 'true')); printf '%s' $_ret; }
+	invert() { $1 && printf '%s' 'false' || printf '%s' 'true'; }
+
 	typeset -i _read_timeout=${MDX_TIMEOUT:-5}	# read command's timeout in seconds
 
-	local _md_error=''	# mkdir(1)'s error message if some
-	local _md_exit=0 	  # mkdir(1)'s exit status (code)
-	local _do_ask=true
-	local _do_cd=false
+	set -x
+	local _do_cd=${MDX_CHANGE_DIR:-false}
+#  	local _do_ask=$(invert $_do_cd)
+# 	local _do_ask=$(( $_do_cd ? false : true )) # WARNING: seems odd :( subprocess?
+#  	local _do_ask=${_do_cd:-true}
+ 	local _do_ask=$(invert $_do_cd)
+	set +x
 	local _mkdir_mode_flag=''
 	local _mkdir_parent_flag=''
 	local _mkdir_verbose_flag=''
+	local _md_error=''	# mkdir(1)'s error message if some
+	local _md_exit=0 	  # mkdir(1)'s exit status (code)
 
 	function _usage ()
 	{
@@ -38,7 +53,8 @@ function mdx ()
 
     options:
       -n, --no          : do not change to new directory
-      -y, --yes         : do change to new directory without prompt
+      -c, --cd          : do change to new directory without prompt
+      -y, --yes         : same as 'yes'
 
       -m, --mode=MODUS  : set file mode as umask (default 0777)
       -p, --parents     : do not complain about existing directories and create with all parent
@@ -50,10 +66,15 @@ function mdx ()
 	}
 
 	# we check for options given first
-	_options="$( getopt --alternative --options hm:nptvy --longoptions help,mode,no,parents,today,verbose,yes --name "$0" -- "$@" )"
+	_options="$( getopt --alternative --options chm:nptvy --longoptions cd,help,mode,no,parents,today,verbose,yes --name "$0" -- "$@" )"
 	eval set -- "${_options}"
 	while true; do
 		case "$1" in
+			-c | --cd | -y | --yes )
+				_do_cd=true
+				_do_ask=false
+				shift 1
+			;;
 			-h | --help )
 				_usage
 				return 0
@@ -63,8 +84,8 @@ function mdx ()
 				shift 2
 			;;
 			-n | --no )
-				_do_ask=false
 				_do_cd=false
+				_do_ask=false
 				shift 1
 			;;
 			-p | --parents )
@@ -82,11 +103,6 @@ function mdx ()
 			;;
 			-v | --verbose )
 				_mkdir_verbose_flag='--verbose'
-				shift 1
-			;;
-			-y | --yes )
-				_do_ask=false
-				_do_cd=true
 				shift 1
 			;;
 			--)
@@ -109,9 +125,13 @@ function mdx ()
 	fi
 
 	# if mkdir(1) fails for any reason, we reuse it's error message and exit with it's exit status
-	[[ $_md_exit != 0 ]] && printf '%s\n' "$_md_error" | sed "s/mkdir/$_me/g" && return $_md_exit
+# 	[[ $_md_exit != 0 ]] && printf '%s\n' "$_md_error" | sed "s/mkdir/$_me/g" && return $_md_exit
+	test $_md_exit -ne 0 && printf '%s\n' "$_md_error" | sed "s/mkdir/$_me/g" && return $_md_exit # VALID?
 
 	# ask user, if no option has been given
+	echo $_do_ask
+# 	return
+
 	if $_do_ask; then
 		read -t $_read_timeout -p "Change to new directory '${1}' now? [Y|n] "
 		case "${REPLY}" in
