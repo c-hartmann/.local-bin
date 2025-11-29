@@ -34,13 +34,11 @@ function mdx ()
 
 	typeset -i _read_timeout=${MDX_TIMEOUT:-5}	# read command's timeout in seconds
 
-	set -x
 	local _do_cd=${MDX_CHANGE_DIR:-false}
 #  	local _do_ask=$(invert $_do_cd)
 # 	local _do_ask=$(( $_do_cd ? false : true )) # WARNING: seems odd :( subprocess?
 #  	local _do_ask=${_do_cd:-true}
  	local _do_ask=$(invert $_do_cd)
-	set +x
 	local _mkdir_mode_flag=''
 	local _mkdir_parent_flag=''
 	local _mkdir_verbose_flag=''

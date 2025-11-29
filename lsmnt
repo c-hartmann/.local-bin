@@ -1,0 +1,30 @@
+#!/bin/bash
+# lsmnt
+
+# list all regular mounts with devices
+
+# even devices not mounted with option -a
+
+# output:
+# device part-no fstype label mountpoint [mount-options]
+
+# $ lsblk
+# --json or --raw - to get output in machine-readable format
+# --exclude list - to exclude devices specified by the comma-separated list
+# --fs - to include infos on filesystems
+# --noheadings - do not print a header line
+# --output-all - output all available columns
+# --filter expr - only devices that meet conditions specified by expr
+# --paths - include the /dev/ part
+echo [lsblk]
+lsblk --fs  # --noheadings --fs # --output-all
+
+# $ findmnt --real
+echo [findmnt]
+findmnt --real
+
+# $ mount
+#mount -t ext4 -t xfs -t vfat -t btrfs
+
+# $ df
+# -h - human sizes
