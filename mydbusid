@@ -1,0 +1,1 @@
+for sname in $( qdbus "org.kde.konsole-*" ) ; do isactive=false ; isactive=$( qdbus "$sname" "/konsole/MainWindow_1" "org.qtproject.Qt.QWidget.isActiveWindow" ) ; $isactive && echo $sname ; done
