@@ -24,7 +24,13 @@ echo [findmnt]
 findmnt --real
 
 # $ mount
+echo [mount]
 #mount -t ext4 -t xfs -t vfat -t btrfs
+mount -t bcachefs,btrfs,ext2,ext3,ext4,jfs,vfat,zfs,xfs | column -t
 
 # $ df
 # -h - human sizes
+
+# lshw
+# echo [lshw]
+# sudo lshw -class disk -short
