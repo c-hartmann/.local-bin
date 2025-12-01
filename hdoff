@@ -1,0 +1,158 @@
+#!/bin/bash
+
+# this command requires at least one argument
+[[ $1 != '' ]] || exit 1
+
+# device might have multiple forms. currently we expect /dev/sdx or sdx
+# uuid is another option (blkid --uuid UUID > /dev/sdc)
+# example uuid: 889c5c05-1bc7-426c-ba64-9492211f0e63
+device=${1#/dev/}
+
+# WARNING: there are no uuids for the whole disk, but for partitions only
+if [[ "$device" =~ ........-....-....-....-............ ]]; then
+	echo matched uuid
+	device_uuid="$device"
+	device_name=$(blkid --uuid /dev/$device)
+else
+	echo matched label
+	device_uuid=$(blkid --label $device)
+	device_name="/dev/$device"
+fi
+echo $device_uuid
+echo $device_name
+
+# hdparm:
+# Force  an  IDE  drive  to  immediately  enter  the  lowest power
+# consumption sleep mode, causing it to shut down  completely.   A
+# hard  or soft reset is required before the drive can be accessed
+# again (the Linux IDE driver will automatically handle issuing  a
+# reset  if/when  needed).   The  current power mode status can be
+# checked using the -C option.
+# sudo hdparm -Y /dev/disk/by-uuid/DEVICE-IDENT-HERE
+
+
+# /etc/hdparm.conf
+# /dev/sdc {
+#	apm = WERT           # Netzbetrieb
+# 	apm_battery = WERT   # Batteriebetrieb
+# 	spindown_time = 0    # kein Anhalten des Spindelmotors
+# }
+
+
+
+# solo:~$ sudo hdparm -I /dev/sdf
+#
+# /dev/sdf:
+#
+# ATA device, with non-removable media
+#         Model Number:       Hitachi HDS5C4040ALE630           <<<<< !!!!
+#         Serial Number:      PL2331LAG7UDAJ
+#         Firmware Revision:  MPAOA3B0
+#         Transport:          Serial, ATA8-AST, SATA 1.0a, SATA II Extensions, SATA Rev 2.5, SATA Rev 2.6, SATA Rev 3.0; Revision: ATA8-AST T13 Project D1697 Revision 0b
+# Standards:
+#         Used: unknown (minor revision code 0x0029)
+#         Supported: 8 7 6 5
+#         Likely used: 8
+# Configuration:
+#         Logical         max     current
+#         cylinders       16383   16383
+#         heads           16      16
+#         sectors/track   63      63
+#         --
+#         CHS current addressable sectors:    16514064
+#         LBA    user addressable sectors:   268435455
+#         LBA48  user addressable sectors:  7814037168
+#         Logical  Sector size:                   512 bytes
+#         Physical Sector size:                  4096 bytes
+#         Logical Sector-0 offset:                  0 bytes
+#         device size with M = 1024*1024:     3815447 MBytes
+#         device size with M = 1000*1000:     4000787 MBytes (4000 GB)
+#         cache/buffer size  = 25060 KBytes (type=DualPortCache)
+#         Form Factor: 3.5 inch
+#         Nominal Media Rotation Rate: 5700
+# Capabilities:
+#         LBA, IORDY(can be disabled)
+#         Queue depth: 32
+#         Standby timer values: spec'd by Standard, no device specific minimum
+#         R/W multiple sector transfer: Max = 16  Current = 0
+#         Advanced power management level: disabled
+#         DMA: mdma0 mdma1 *mdma2 udma0 udma1 udma2 udma3 udma4 udma5 udma6
+#              Cycle time: min=120ns recommended=120ns
+#         PIO: pio0 pio1 pio2 pio3 pio4
+#              Cycle time: no flow control=120ns  IORDY flow control=120ns
+
+
+
+# solo:~$ sudo smartctl -i -n standby /dev/sda
+# === START OF INFORMATION SECTION ===
+# Model Family:     Samsung based SSDs
+# Device Model:     Samsung SSD 840 EVO 250GB
+# Serial Number:    S1DBNSBFB44987B
+# LU WWN Device Id: 5 002538 8a083a420
+# Firmware Version: EXT0CB6Q
+# User Capacity:    250.059.350.016 bytes [250 GB]
+# Sector Size:      512 bytes logical/physical
+# Rotation Rate:    Solid State Device
+# TRIM Command:     Available
+# Device is:        In smartctl database [for details use: -P show]
+# ATA Version is:   ACS-2, ATA8-ACS T13/1699-D revision 4c
+# SATA Version is:  SATA 3.1, 6.0 Gb/s (current: 6.0 Gb/s)
+# Local Time is:    Mon Oct 16 12:20:24 2023 CEST
+# SMART support is: Available - device has SMART capability.
+# SMART support is: Enabled
+# Power mode is:    ACTIVE or IDLE
+
+# solo:~$ sudo smartctl -i -n standby /dev/sdb
+# === START OF INFORMATION SECTION ===
+# Model Family:     Western Digital Red
+# Device Model:     WDC WD40EFRX-68WT0N0
+# Serial Number:    WD-WCC4ECAVN9E9
+# LU WWN Device Id: 5 0014ee 26083fbea
+# Firmware Version: 82.00A82
+# User Capacity:    4.000.787.030.016 bytes [4,00 TB]
+# Sector Sizes:     512 bytes logical, 4096 bytes physical
+# Rotation Rate:    5400 rpm
+# Device is:        In smartctl database [for details use: -P show]
+# ATA Version is:   ACS-2 (minor revision not indicated)
+# SATA Version is:  SATA 3.0, 6.0 Gb/s (current: 6.0 Gb/s)
+# Local Time is:    Mon Oct 16 12:20:31 2023 CEST
+# SMART support is: Available - device has SMART capability.
+# SMART support is: Enabled
+# Power mode is:    ACTIVE or IDLE
+
+# solo:~$ sudo smartctl -i -n standby /dev/sdc
+# === START OF INFORMATION SECTION ===
+# Model Family:     Western Digital Caviar Blue Serial ATA
+# Device Model:     WDC WD3200AAJS-22RYA0
+# Serial Number:    WD-WCAPZ2949938
+# LU WWN Device Id: 5 0014ee 10054e7ec
+# Firmware Version: 12.01B01
+# User Capacity:    320.071.851.520 bytes [320 GB]
+# Sector Size:      512 bytes logical/physical
+# Device is:        In smartctl database [for details use: -P show]
+# ATA Version is:   ATA/ATAPI-7 (minor revision not indicated)
+# Local Time is:    Mon Oct 16 12:20:43 2023 CEST
+# SMART support is: Available - device has SMART capability.
+# SMART support is: Enabled
+# Power mode is:    ACTIVE or IDLE
+
+# solo:~$ sudo smartctl -i -n standby /dev/sdf
+# CHECK POWER MODE: incomplete response, ATA output registers missing
+# CHECK POWER MODE not implemented, ignoring -n option
+# === START OF INFORMATION SECTION ===
+# Model Family:     Hitachi/HGST Deskstar 5K4000
+# Device Model:     Hitachi HDS5C4040ALE630
+# Serial Number:    PL2331LAG7UDAJ
+# LU WWN Device Id: 5 000cca 22ec38df0
+# Firmware Version: MPAOA3B0
+# User Capacity:    4.000.787.030.016 bytes [4,00 TB]
+# Sector Sizes:     512 bytes logical, 4096 bytes physical
+# Rotation Rate:    5700 rpm
+# Form Factor:      3.5 inches
+# Device is:        In smartctl database [for details use: -P show]
+# ATA Version is:   ATA8-ACS T13/1699-D revision 4
+# SATA Version is:  SATA 3.0, 6.0 Gb/s (current: 3.0 Gb/s)
+# Local Time is:    Mon Oct 16 12:20:48 2023 CEST
+# SMART support is: Available - device has SMART capability.
+# SMART support is: Enabled
+
