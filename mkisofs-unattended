@@ -1,0 +1,156 @@
+#!/bin/bash
+#.local/bin/mkisofs-unattended
+
+# ensure we deal with english command output only
+export LANG=C
+
+# on command line we expect a required iso image and an optinal preseed file
+iso_source=""
+pre_seed_file=""
+
+# ensure clean up if interrupted
+function clean_up {
+	udisksctl unmount --block-device /dev/${loop_dev_name}p1 --no-user-interaction
+	udisksctl loop-delete --block-device /dev/${loop_dev_name} --no-user-interaction
+	[[ $tmp_dir == $PWD ]] && popd
+	[[ -d $tmp_dir ]] && rm -rf $tmp_dir
+	exit ${1:-255}
+# TODO we might want to work with full path to unmoount
+# TODO $ in $tmp_dir required?
+# TODO can popd fail? test required?
+# TODO operation allowed on $1? argv [1] instead?
+# TODO deleting the partition (not the device!) might also unmount before deleting the loop device
+#  SEE https://github.com/storaged-project/udisks/issues/830
+}
+# trap clean_up SIGINT SIGTERM ERR EXIT
+
+# check arguments
+function usage {
+	printf '%s\n' "usage: mkisofs-unattended <isoimage>"
+	exit ${1:-255}
+}
+[[ $# == 0 ]] && usage 1
+
+function user_has_plugdev_permission {
+	:
+}
+# SEE https://wiki.gentoo.org/wiki/Udisks
+
+# get source iso as command line argument
+iso_source="$1"
+iso_source_dirname="${iso_source%/*}"
+iso_source_filename="${iso_source##*/}"
+iso_source_filename_base="${iso_source_filename%.*}"
+iso_source_filename_ext="${iso_source_filename##*.}"
+
+# get preseed if we have one on command line (if not we create a minimal on the fly from current user)
+[[ $# == 2 ]] && pre_seed_file=$2
+
+# check validity of source image
+#tbd..
+
+# create temporary work directory to create subdirectories in and ensure
+# just me can read the directory (as sensible data might get into)
+tmp_dir=$(mktemp -d -t mkisofs-unattended-XXXXXXXX)
+chmod 700 $tmp_dir
+# ls -ld $tmp_dir
+echo $tmp_dir
+
+# change working directory to temporary directory
+pushd $tmp_dir
+
+# create subdirectory to mount image into
+#mkdir ./iso
+
+# create subdirectory to create "preseed" files into
+mkdir ./preseed
+# mkdir -p ./preseed/preseed # TODO here or later when creating files?
+# TODO find a less debian oppinionated name here
+
+# create subdirectory to put extra stuff in if needed
+mkdir ./extras
+
+# create subdirectory as "work" directory [?]
+#mkdir ./work
+
+# create subdirectory as "merge" directory [?]
+mkdir ./merge
+
+# FOR TESTING (udisksctl) PURPOSE ONLY!
+# mkdir ./iso
+
+# mount source image to
+
+# TODO CAN WE USE MOUNT WITH USER NAMESPACE? (unshare -r -m)
+
+# TODO is fakeroot a viable way to go?
+#      https://github.com/coreprocess/linux-unattended-installation/blob/master/ubuntu/20.04/build-iso.sh
+
+# WARNING to use udisksctl the current user has to be a member of the 'plugdev' group
+
+# TODO we should test this before using udiskctl
+loop_setup_out="$(udisksctl loop-setup --file "${iso_source}" --read-only --no-user-interaction)"
+# TODO do we require this offset thing?
+#      with udiskctl: likely not, as it does not know this option ;)
+#      but eventually with mount! (in user namespace). where to get the right offset?
+
+# TODO some report that loop setup mounts the image already
+#  SEE https://unix.stackexchange.com/questions/724607/udiskctl-loop-setup-automatically-mounts-the-image-without-asking
+#  SEE https://bugs.freedesktop.org/show_bug.cgi?id=89711
+loop_dev_name="${loop_setup_out##*/dev/}"
+loop_dev_name="${loop_dev_name%%.}"
+# loop_dev_name="${loop_setup_out##*as\ }" # might also work and might be more save
+
+loop_setup_out="$(udisksctl mount --block-device "/dev/${loop_dev_name}p1" --no-user-interaction)"
+# TODO always part 1 ?
+# $ sudo fdisk -l /home/christian/Downloads/ISOs/Linux/mx/MX-23.1_KDE_x64.iso
+# Festplatte /home/christian/Downloads/ISOs/Linux/mx/MX-23.1_KDE_x64.iso: 2,49 GiB, 2671771648 Bytes, 5218304 Sektoren
+# Einheiten: Sektoren von 1 * 512 = 512 Bytes
+# Sektorgröße (logisch/physikalisch): 512 Bytes / 512 Bytes
+# E/A-Größe (minimal/optimal): 512 Bytes / 512 Bytes
+# Festplattenbezeichnungstyp: dos
+# Festplattenbezeichner: 0x00f56a13
+# Gerät                                                        Boot Anfang    Ende Sektoren Größe Kn Typ
+# /home/christian/Downloads/ISOs/Linux/mx/MX-23.1_KDE_x64.iso1 *         0 5218303  5218304  2,5G  0 Leer
+# /home/christian/Downloads/ISOs/Linux/mx/MX-23.1_KDE_x64.iso2        1236   19135    17900  8,7M ef EFI (FAT-12/16/32)
+
+loop_mount_point="${loop_setup_out##*at\ }"
+ln -sf "$loop_mount_point" ./iso
+
+# TODO losetup might be a viable alternative (default install in most distros? package: util-linux, likely!)
+#  SEE https://peterbabic.dev/blog/why-use-losetup-instead-udisksctl/
+#     > losetup requires root rights to setup (default operation) a loop device
+
+set -x
+# create a read only overlay directory structure from all dirs above
+touch ./preseed/preseed.cfg
+
+
+#sudo mount -t overlay overlay -o "lowerdir=${loop_mount_point}:$PWD/preseed:$PWD/extras" $PWD/merged
+# WARNING require root rights
+## TODO the next line might(!) work ...
+#udisksctl mount --filesystem-type overlay --options "lowerdir=${loop_mount_point}:$PWD/preseed:$PWD/extras" $PWD/merged
+
+pwd
+mkdir upper
+mkdir work
+#unshare -rm bash -c 'mount -t overlay overlay -o "lowerdir=$PWD/iso:$PWD/preseed:$PWD/extras,upperdir=$PWD/upper,workdir=$PWD/work" $PWD/merge'
+unshare -rm mount -t overlay overlay -o "lowerdir=./iso:./preseed:./extras,upperdir=./upper,workdir=./work" ./merge
+# mount -t overlay overlay -o "lowerdir=iso:preseed:extras,upperdir=upper,workdir=work" merge
+
+# exit
+# set +x; exit
+
+# create new "merged" iso from overlay structure
+# iso_unattended="${iso_source_filename_base}-ps.${iso_source_filename_ext}"
+# mkisofs -o "$iso_unattended}" ./merged
+
+# validate that new image
+#tbd...
+
+# move new image to a save place (aside the source)
+# cp "$iso_unattended}" "${iso_source_dirname}/"
+# printf '%s\n' "${iso_source_dirname}/${iso_unattended}"
+
+# clean up and leave
+#clean_up 0
