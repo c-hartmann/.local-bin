@@ -19,14 +19,14 @@
 echo [lsblk]
 lsblk --fs  # --noheadings --fs # --output-all
 
-# $ findmnt --real
+# $ findmnt --real # lists squashf as well (i.e. snaps)
 echo [findmnt]
-findmnt --real
+findmnt --real | grep -v 'squashfs'
 
 # $ mount
 echo [mount]
 #mount -t ext4 -t xfs -t vfat -t btrfs
-mount -t bcachefs,btrfs,ext2,ext3,ext4,jfs,vfat,zfs,xfs | column -t
+mount -t bcachefs,btrfs,cifs,ext2,ext3,ext4,exfat,fat32,msdos,ntfs,jfs,vfat,zfs,xfs | column -t
 
 # $ df
 # -h - human sizes
