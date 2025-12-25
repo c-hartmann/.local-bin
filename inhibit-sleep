@@ -1,0 +1,48 @@
+#!/bin/bash
+# inhibit-sleep
+# run kdialog under the control of systemd-inhibit and wait for user interaction to stop it
+# see: https://systemd.io/INHIBITOR_LOCKS/
+# https://www.freedesktop.org/software/systemd/man/latest/systemd-inhibit.html
+ME='Suspend and Hibernation Inhibitor'
+ME='Sleep Inhibitor'
+WHO='SleepInhibitor'
+WHO=${ME// /}
+TIMEOUT=${TIMEOUT:-'3600'}
+WHAT='sleep:shutdown'
+WHAT='sleep:idle'
+WHAT='sleep'
+WHY='User paused PowerDevil initiated system suspend'
+WHY='Allow long running processes without suspend'
+MODE='block'
+systemd-inhibit --what="$WHAT" --who="$WHO" --why="$WHY" --mode="$MODE" \
+  notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --expire-time=$((TIMEOUT*1000)) --wait=$((TIMEOUT*1000)) --transient "Going to sleep mode inhibited for $((TIMEOUT/60)) minutes" 'Close to stop'
+
+
+
+
+# Alternatives:
+
+# KDE
+# kdialog --title "$ME" --msgbox "System suspend is inhibited until you click 'Stop'" --ok-label 'Stop'
+# kdialog --title 'Suspend Inhibitor' --msgbox "System suspend is inhibited until you click 'Stop'" --ok-label 'Stop'
+# kdialog --title "Suspend inhibited for $TIMEOUT seconds" --passivepopup 'Close to stop' $TIMEOUT
+
+# GTK based
+# https://til.codeinthehole.com/posts/about-ubuntus-alert-bash-alias/
+# notify-send --urgency=low --expire-time=$TIMEOUT --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited'
+# notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --expire-time=$((TIMEOUT*1000)) "Sleep inhibited for $TIMEOUT seconds" 'Close to stop'
+# notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --wait=$((TIMEOUT*1000)) --transient "Sleep inhibited for $TIMEOUT seconds" 'Close to stop'
+
+# all distris
+# gdbus call --session \
+#     --dest=org.freedesktop.Notifications \
+#     --object-path=/org/freedesktop/Notifications \
+#     --method=org.freedesktop.Notifications.Notify \
+#     "" 0 "" "Warnung" "Dies ist ein sehr wichtiger Hinweis!" \
+#     '[]' '{"urgency": <1>}' 5000
+
+# TODO:
+# get first available notification utility from notify-send, gdbus, kdialog, zenity?
+
+# DONE:
+# printout timeout in minutes, not seconds
