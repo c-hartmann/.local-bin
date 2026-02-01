@@ -3,21 +3,52 @@
 # run kdialog under the control of systemd-inhibit and wait for user interaction to stop it
 # see: https://systemd.io/INHIBITOR_LOCKS/
 # https://www.freedesktop.org/software/systemd/man/latest/systemd-inhibit.html
-ME='Suspend and Hibernation Inhibitor'
+# ME='Suspend and Hibernation Inhibitor'
 ME='Sleep Inhibitor'
-WHO='SleepInhibitor'
+TIMEOUT=10
+
+ln=${LOGNAME:-christian}
+
+if [[ $# -ge 1 ]]; then
+	# if argument given is numeric use it as timeout
+	declare -i _arg=${1%[.,]*}
+	if [[ $_arg != 0 ]]; then
+		TIMEOUT=$_arg
+	else
+		echo "argument ignored (not numeric or zero): '$1'" 1>&2
+	fi
+fi
+
 WHO=${ME// /}
-TIMEOUT=${TIMEOUT:-'3600'}
-WHAT='sleep:shutdown'
-WHAT='sleep:idle'
+# WHAT='sleep:shutdown'
+# WHAT='sleep:idle'
 WHAT='sleep'
-WHY='User paused PowerDevil initiated system suspend'
+# WHY='User paused PowerDevil initiated system suspend'
 WHY='Allow long running processes without suspend'
 MODE='block'
-systemd-inhibit --what="$WHAT" --who="$WHO" --why="$WHY" --mode="$MODE" \
-  notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --expire-time=$((TIMEOUT*1000)) --wait=$((TIMEOUT*1000)) --transient "Going to sleep mode inhibited for $((TIMEOUT/60)) minutes" 'Close to stop'
+APPNAME='Sleep Inhibitor'
+ICON='system-suspend-inhibited'
+# ICON='system-suspend-uninhibited'
+# ICON='face-sleeping'
+TIME=$((TIMEOUT*60*1000))
+WAIT=$TIME
+MESSAGE="Sleep inhibited for $TIMEOUT minutes"
+SUBTEXT='Close to <b>stop</b> or hover to <b>restart</b> timer'
 
-
+systemd-inhibit \
+  --what="$WHAT" \
+  --who="$WHO" \
+  --why="$WHY" \
+  --mode="$MODE" \
+	notify-send \
+	--urgency=low \
+	--app-name="$APPNAME" \
+	--icon="$ICON" \
+	--expire-time=$TIME \
+	--wait=$WAIT \
+	--transient \
+	"$MESSAGE" \
+	"$SUBTEXT"
 
 
 # Alternatives:
@@ -33,16 +64,39 @@ systemd-inhibit --what="$WHAT" --who="$WHO" --why="$WHY" --mode="$MODE" \
 # notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --expire-time=$((TIMEOUT*1000)) "Sleep inhibited for $TIMEOUT seconds" 'Close to stop'
 # notify-send --urgency=low --app-name='Sleep Inhibitor' --icon='system-suspend-uninhibited' --wait=$((TIMEOUT*1000)) --transient "Sleep inhibited for $TIMEOUT seconds" 'Close to stop'
 
-# all distris
-# gdbus call --session \
-#     --dest=org.freedesktop.Notifications \
-#     --object-path=/org/freedesktop/Notifications \
-#     --method=org.freedesktop.Notifications.Notify \
-#     "" 0 "" "Warnung" "Dies ist ein sehr wichtiger Hinweis!" \
-#     '[]' '{"urgency": <1>}' 5000
+# all distris via d-bus
+# https://gandrille.github.io/linux-notes/Desktop-environments/Basic-HMI-and-notifications/Basic-HMI-and-notifications
+# experimentals...
+# gdbus \
+#   call \
+#   --session \
+#   --dest=org.freedesktop.Notifications \
+#   --object-path=/org/freedesktop/Notifications \
+#   --method=org.freedesktop.Notifications.Notify \
+# 	"Sleep Inhibitor" \
+# 	42 \
+# 	"system-suspend-uninhibited" \
+# 	"Eine Summary" \
+# 	"Im Body ist ein wichtiger Hinweis" \
+# 	'[ "as", "Allow Sleep" ] ]' \
+# 	'{"urgency": <1>}' \
+# 	36000
+# > can not run in foreground :/
+# > ? can we wait in background?
+# > > from: https://www.reddit.com/r/bash/comments/rzzm9s/dbus_tracking_for_a_test_in_script/
+# > > ? dbus-monitor --session interface='org.freedesktop.Notifications'
+
 
 # TODO:
 # get first available notification utility from notify-send, gdbus, kdialog, zenity?
+# can this renew/restart itself?
+# i18n
+# get real still running time (as firefox does)
+
+# QUESTS:
+# create an application file to allow notification settings via system settings?
 
 # DONE:
 # printout timeout in minutes, not seconds
+# switch to minutes as timeout value
+# use first argument if given as timeout in minutes
