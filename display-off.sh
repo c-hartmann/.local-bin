@@ -1,12 +1,16 @@
 #!/bin/bash
 
+LANG='C.UTF-8'
+
 # TODO
 # - put the icon in a defined place.
 #   somewhere in ~/.local/share?
 # - rename to display-off
 
 waitfor=${1:-5}
-kdialog --title 'Display Off' --passivepopup "Turning off all displays in $waitfor seconds ..." $waitfor --icon "$HOME/Desktop/monitor-off-symbolic.svg"
+message="Turning off all displays in $waitfor seconds ..."
+kdialog --title 'Display Off' --passivepopup "$message" $waitfor --icon "$HOME/Desktop/monitor-off-symbolic.svg"
+printf '%s\n' "$message" 1>&2
 sleep $waitfor
 
 # https://askubuntu.com/questions/1316097/how-to-turn-off-the-monitor-via-command-on-wayland-kde-plasma
@@ -27,12 +31,12 @@ sleep $waitfor
 # both tested, both do the job!
 
 off=false
-typeset -l session="${XDG_SESSION_TYPE:-wayland}"
+typeset -u session="${XDG_SESSION_TYPE:-wayland}"
 case $session in
 
-	wayland )
+	WAYLAND )
 		# works on Wayland
-		kscreen-doctor --dpms off && off=true
+		kscreen-doctor --dpms 'off' && off=true
 		# works on Wayland and should work on X11 as well
 		! $off \
 		&& /bin/dbus-send \
@@ -45,9 +49,9 @@ case $session in
 		  1>/dev/null
 	;;
 
-	x11 )
+	X11 )
 		# some say, it is not working in x11
-		kscreen-doctor --dpms off && off=true
+		kscreen-doctor --dpms 'off' && off=true
 		# this should work in X11 but obviously not in Wayland
 		! $off && /usr/bin/xset dpms force off && off=true
 		# works on Wayland and should work on X11 as well
