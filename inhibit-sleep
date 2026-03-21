@@ -3,12 +3,14 @@
 # run kdialog under the control of systemd-inhibit and wait for user interaction to stop it
 # see: https://systemd.io/INHIBITOR_LOCKS/
 # https://www.freedesktop.org/software/systemd/man/latest/systemd-inhibit.html
+
 # ME='Suspend and Hibernation Inhibitor'
 ME='Sleep Inhibitor'
 TIMEOUT=10
 
 ln=${LOGNAME:-christian}
 
+# argument might set timeout
 if [[ $# -ge 1 ]]; then
 	# if argument given is numeric use it as timeout
 	declare -i _arg=${1%[.,]*}
