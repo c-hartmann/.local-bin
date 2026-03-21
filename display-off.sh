@@ -6,11 +6,26 @@ LANG='C.UTF-8'
 # - put the icon in a defined place.
 #   somewhere in ~/.local/share?
 # - rename to display-off
+# - replace kdialog with more powerfull stuff?
+# 	notify-send \
+# 			--urgency=low \
+# 			--app-name="$APPNAME" \
+# 			--icon="$ICON" \
+# 			--expire-time=$TIME \
+# 			--wait=$WAIT \
+# 			--transient \
+# 			"$MESSAGE" \
+# 			"$SUBTEXT"
+# - any way to Cancel power off from the notification?
+
+
 
 waitfor=${1:-5}
 message="Turning off all displays in $waitfor seconds ..."
+
 kdialog --title 'Display Off' --passivepopup "$message" $waitfor --icon "$HOME/Desktop/monitor-off-symbolic.svg"
 printf '%s\n' "$message" 1>&2
+
 sleep $waitfor
 
 # https://askubuntu.com/questions/1316097/how-to-turn-off-the-monitor-via-command-on-wayland-kde-plasma
