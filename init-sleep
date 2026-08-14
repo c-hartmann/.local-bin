@@ -1,0 +1,36 @@
+#!/bin/bash
+# init-sleep
+
+LANG='C.UTF-8'
+
+# TODO
+# - put the icon in a defined place.
+#   somewhere in ~/.local/share?
+# - rename to display-off
+# - replace kdialog with more powerfull stuff?
+# 	notify-send \
+# 			--urgency=low \
+# 			--app-name="$APPNAME" \
+# 			--icon="$ICON" \
+# 			--expire-time=$TIME \
+# 			--wait=$WAIT \
+# 			--transient \
+# 			"$MESSAGE" \
+# 			"$SUBTEXT"
+# - any way to Cancel power off from the notification?
+
+
+
+waitfor=${1:-5}
+message="Initing systzem sleep mode in $waitfor seconds ..."
+
+kdialog --title 'Init Sleep' --passivepopup "$message" $waitfor --icon "system-suspend"
+printf '%s\n' "$message" 1>&2
+
+sleep $waitfor
+
+systemctl suspend
+
+# if we are within 5 seconds we start a second attempt?
+# sleep 1
+# systemctl suspend

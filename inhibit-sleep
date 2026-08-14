@@ -1,8 +1,16 @@
 #!/bin/bash
 # inhibit-sleep
 # run kdialog under the control of systemd-inhibit and wait for user interaction to stop it
-# see: https://systemd.io/INHIBITOR_LOCKS/
+
+# SEE:
+# https://systemd.io/INHIBITOR_LOCKS/
 # https://www.freedesktop.org/software/systemd/man/latest/systemd-inhibit.html
+
+# TODO:
+# - Prozess "abtrennen"?
+# - delay könnte der geeignetere Mode sein
+
+
 
 # ME='Suspend and Hibernation Inhibitor'
 ME='Sleep Inhibitor'
@@ -10,7 +18,7 @@ TIMEOUT=10
 
 ln=${LOGNAME:-christian}
 
-# argument might set timeout
+# first argument sets timeout (if present)
 if [[ $# -ge 1 ]]; then
 	# if argument given is numeric use it as timeout
 	declare -i _arg=${1%[.,]*}
@@ -22,21 +30,18 @@ if [[ $# -ge 1 ]]; then
 fi
 
 WHO=${ME// /}
-# WHAT='sleep:shutdown'
-# WHAT='sleep:idle'
-WHAT='sleep'
-# WHY='User paused PowerDevil initiated system suspend'
+WHAT='sleep' # might be a list as in: 'sleep:shutdown' or 'sleep:idle'
 WHY='Allow long running processes without suspend'
-MODE='block'
+MODE='block' # or: 'delay'
 APPNAME='Sleep Inhibitor'
-ICON='system-suspend-inhibited'
-# ICON='system-suspend-uninhibited'
-# ICON='face-sleeping'
+ICON='system-suspend-inhibited' # 'system-suspend-uninhibited', 'face-sleeping'
 TIME=$((TIMEOUT*60*1000))
 WAIT=$TIME
 MESSAGE="Sleep inhibited for $TIMEOUT minutes"
 SUBTEXT='Close to <b>stop</b> or hover to <b>restart</b> timer'
 
+# TODO: nohub?
+# inhibit sleep as long 'notify-send' is running...
 systemd-inhibit \
   --what="$WHAT" \
   --who="$WHO" \
@@ -50,7 +55,11 @@ systemd-inhibit \
 	--wait=$WAIT \
 	--transient \
 	"$MESSAGE" \
-	"$SUBTEXT"
+	"$SUBTEXT" \
+	\
+	> /dev/null 2>&2 \
+	& \
+	disown
 
 
 # Alternatives:
