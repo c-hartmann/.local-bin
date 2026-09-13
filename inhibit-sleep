@@ -37,8 +37,25 @@ APPNAME='Sleep Inhibitor'
 ICON='system-suspend-inhibited' # 'system-suspend-uninhibited', 'face-sleeping'
 TIME=$((TIMEOUT*60*1000))
 WAIT=$TIME
-MESSAGE="Sleep inhibited for $TIMEOUT minutes"
+MESSAGE="No sleep for $TIMEOUT minutes" # default
 SUBTEXT='Close to <b>stop</b> or hover to <b>restart</b> timer'
+
+function hours_and_minutes()
+{
+	local minutes="$1"
+	local full_hours=$(( minutes / 60 ))
+    local remaining_minutes=$(( minutes % 60 ))
+	echo $full_hours $remaining_minutes
+}
+
+if [[ $TIMEOUT -gt 60 ]]; then
+	read -r hours minutes < <(hours_and_minutes $TIMEOUT)
+	if [[ $minutes -eq 0 ]]; then
+		MESSAGE="No sleep for $hours hours"
+	else
+		MESSAGE="No sleep for $hours hours and $minutes minutes"
+	fi
+fi
 
 # TODO: nohub?
 # inhibit sleep as long 'notify-send' is running...
@@ -57,7 +74,7 @@ systemd-inhibit \
 	"$MESSAGE" \
 	"$SUBTEXT" \
 	\
-	> /dev/null 2>&2 \
+	> /dev/null 2>&1 \
 	& \
 	disown
 
